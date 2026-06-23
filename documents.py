@@ -7,6 +7,23 @@ import streamlit as st
 from pathlib import Path
 import database as db
 
+st.markdown("""
+<style>
+p {
+    font-size: 12px;
+}
+
+button {
+    font-size: 12px !important;
+}
+
+.stMarkdown {
+    margin-bottom: -10px;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
 STEP_ORDER = ["reviewer", "manager", "finance/admin"]
 STEP_LABEL = {
     "reviewer":     "Reviewer",
@@ -283,18 +300,5 @@ def documents_page():
             del st.session_state["view_document"]
             del st.session_state["view_filename"]
             st.rerun()
-        import base64
-
-        pdf_bytes = st.session_state["view_document"]
-
-        base64_pdf = base64.b64encode(pdf_bytes).decode("utf-8")
-
-        pdf_display = f"""
-        <iframe 
-        src="data:application/pdf;base64,{base64_pdf}" 
-        width="700" 
-        height="900">
-        </iframe>
-        """
-
-        st.markdown(pdf_display, unsafe_allow_html=True)
+        
+        st.pdf(st.session_state["view_document"])
