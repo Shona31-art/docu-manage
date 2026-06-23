@@ -7,12 +7,16 @@ import os
 # Windows: point pytesseract at the default Tesseract install location.
 # If Tesseract is installed somewhere else, update this path.
 TESSERACT_PATH = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+
 if os.path.exists(TESSERACT_PATH):
     pytesseract.pytesseract.tesseract_cmd = TESSERACT_PATH
 
-TESSERACT_AVAILABLE = os.path.exists(TESSERACT_PATH)
-
-
+try:
+    pytesseract.get_tesseract_version()
+    TESSERACT_AVAILABLE = True
+except Exception:
+    TESSERACT_AVAILABLE = False
+    
 def _parse_amount(raw: str) -> float:
     """Turn '12,450.00' or 'R12,450.00' into 12450.00"""
     cleaned = raw.replace(",", "").replace("R", "").strip()
