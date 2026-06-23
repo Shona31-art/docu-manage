@@ -1,0 +1,8 @@
+streamlit
+pandas
+bcrypt
+pymupdf
+pytesseract
+pillow
+reportlab
+openpyxl

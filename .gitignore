@@ -1,0 +1,9 @@
+venv/
+__pycache__/
+*.pyc
+documanage.db
+uploaded_files/
+seed_demo_users.py
+.streamlit/secrets.toml
+make_invoice.py
+INV-2026-0041.pdf
