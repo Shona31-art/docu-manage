@@ -283,4 +283,18 @@ def documents_page():
             del st.session_state["view_document"]
             del st.session_state["view_filename"]
             st.rerun()
-        st.pdf(st.session_state["view_document"])
+        import base64
+
+        pdf_bytes = st.session_state["view_document"]
+
+        base64_pdf = base64.b64encode(pdf_bytes).decode("utf-8")
+
+        pdf_display = f"""
+        <iframe 
+        src="data:application/pdf;base64,{base64_pdf}" 
+        width="700" 
+        height="900">
+        </iframe>
+        """
+
+        st.markdown(pdf_display, unsafe_allow_html=True)
