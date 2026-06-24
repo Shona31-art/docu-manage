@@ -32,7 +32,7 @@ def _find_labeled_amount(text: str, label_pattern: str):
     """
     # Strip out percentage values first so they don't get matched as amounts
     clean_text = re.sub(r'\d+\.?\d*\s*%', '', text)
-    pattern = label_pattern + r"[^\d]{0,20}(R?\s?\d{1,3}(?:,\d{3})*\.\d{2})"
+    pattern = label_pattern + r"[^\d]{0,80}(?:R\s?)?(\d{1,3}(?:[,\s]\d{3})*\.\d{2})"
     match = re.search(pattern, clean_text, re.I)
     if match:
         return _parse_amount(match.group(1))
@@ -110,18 +110,48 @@ def extract_invoice_data(file_path):
     # Date
     data["invoice_date"] = _find_date(text)
 
-    # Amounts — search by label first, then fall back to positional guess
-    subtotal = _find_labeled_amount(text, r"sub[\s-]?total")
+   # Amounts — support multiple invoice layouts and wording variations
 
-    # VAT: credit notes may label it as "VAT", "Tax", "VAT amount", "Tax amount"
-    vat = (
-        _find_labeled_amount(text, r"vat(?:\s*\(\d+%\))?(?:\s*amount)?")
-        or _find_labeled_amount(text, r"tax(?:\s*amount)?")
+    subtotal = (
+    _find_labeled_amount(text, r"sub[\s-]?total")
+    or _find_labeled_amount(text, r"subtotal\s+(?:before|excl(?:usive)?)\s*(?:vat|tax)")
+    or _find_labeled_amount(text, r"net\s+amount")
+    or _find_labeled_amount(text, r"net\s+total")
+    or _find_labeled_amount(text, r"amount\s+before\s+tax")
+    or _find_labeled_amount(text, r"amount\s+before\s+vat")
+    or _find_labeled_amount(text, r"taxable\s+amount")
+    or _find_labeled_amount(text, r"taxable\s+value")
+    or _find_labeled_amount(text, r"goods\s+amount")
+    or _find_labeled_amount(text, r"service\s+amount")
+    or _find_labeled_amount(text, r"line\s+total")
     )
 
-    # Total: avoid matching inside "Subtotal" using word boundary logic
-    total = _find_labeled_amount(
-        text, r"(?<!\w)total\s*(?:due|amount|payable|refund)?"
+    vat = (
+    _find_labeled_amount(text, r"vat(?:\s*\(\d+\.?\d*%\))?")
+    or _find_labeled_amount(text, r"vat\s+amount")
+    or _find_labeled_amount(text, r"vat\s+total")
+    or _find_labeled_amount(text, r"value\s+added\s+tax")
+    or _find_labeled_amount(text, r"tax")
+    or _find_labeled_amount(text, r"tax\s+amount")
+    or _find_labeled_amount(text, r"sales\s+tax")
+    or _find_labeled_amount(text, r"gst")
+    )
+
+    total = (
+    _find_labeled_amount(text, r"(?<!\w)(?:grand\s*)?total(?!\s*(?:vat|tax))")
+    or _find_labeled_amount(text, r"invoice\s+total")
+    or _find_labeled_amount(text, r"total\s+amount")
+    or _find_labeled_amount(text, r"total\s+due")
+    or _find_labeled_amount(text, r"amount\s+due")
+    or _find_labeled_amount(text, r"balance\s+due")
+    or _find_labeled_amount(text, r"outstanding\s+balance")
+    or _find_labeled_amount(text, r"remaining\s+balance")
+    or _find_labeled_amount(text, r"balance\s+payable")
+    or _find_labeled_amount(text, r"balance\s+amount")
+    or _find_labeled_amount(text, r"amount\s+outstanding")
+    or _find_labeled_amount(text, r"payable\s+amount")
+    or _find_labeled_amount(text, r"total\s+payable")
+    or _find_labeled_amount(text, r"final\s+amount")
     )
 
     # If labeled search found nothing, fall back to last 3 currency amounts
