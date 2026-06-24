@@ -301,10 +301,12 @@ def documents_page():
         st.subheader(f"👁 Viewing: {doc['file_name']}")
 
     if st.button("✖ Close Viewer",key=f"close_{doc['id']}"):
-        del st.session_state["view_document"]
-        del st.session_state["view_filename"]
-        del st.session_state["view_doc_id"]
-        st.rerun()
+
+        st.session_state.pop("view_document", None)
+        st.session_state.pop("view_filename", None)
+        st.session_state.pop("view_doc_id", None)
+
+    st.rerun()
 
     data=st.session_state["view_document"]
 
