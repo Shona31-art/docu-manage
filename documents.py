@@ -287,12 +287,22 @@ def documents_page():
 
 
             with view_col:
+
                 if file_path.exists():
-                    if st.button("👁 View", key=f"view_{doc['id']}"):
-                        with open(file_path, "rb") as f:
+
+                    if st.button(
+                        "👁 View",
+                        key=f"view_{doc['id']}"
+                    ):
+
+                        with open(file_path,"rb") as f:
+
                             st.session_state["view_document"] = f.read()
+
                             st.session_state["view_filename"] = doc["file_name"]
-                            st.session_state["view_ext"] = file_path.suffix.lower()
+
+
+                        st.rerun()
 
 
 
@@ -316,29 +326,65 @@ def documents_page():
 
     # VIEWER (outside loop)
 
-    if (
-    "view_document" in st.session_state
-    and st.session_state["view_filename"] == doc["file_name"]
-):
-    st.divider()
-    st.subheader(f"👁 Viewing: {doc['file_name']}")
+    if "view_document" in st.session_state:
 
-    if st.button("✖ Close Viewer", key=f"close_{doc['id']}"):
-        del st.session_state["view_document"]
-        del st.session_state["view_filename"]
-        del st.session_state["view_ext"]
-        st.rerun()
 
-    data = st.session_state["view_document"]
-    ext = st.session_state["view_ext"]
+        st.divider()
 
-    if ext == ".pdf":
-        import fitz
-        pdf = fitz.open(stream=data, filetype="pdf")
-        for page in pdf:
-            pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
-            st.image(pix.tobytes("png"), use_container_width=True)
-        pdf.close()
 
-    elif ext in (".png", ".jpg", ".jpeg"):
-        st.image(data, use_container_width=True)
+        st.subheader(
+            f"👁 Viewing: {st.session_state['view_filename']}"
+        )
+
+
+        if st.button("✖ Close Viewer"):
+
+            del st.session_state["view_document"]
+
+            del st.session_state["view_filename"]
+
+            st.rerun()
+
+
+
+        file = st.session_state["view_filename"]
+
+        ext = file.lower().split(".")[-1]
+
+        data = st.session_state["view_document"]
+
+
+        if ext == "pdf":
+
+            import fitz
+
+
+            pdf = fitz.open(
+                stream=data,
+                filetype="pdf"
+            )
+
+
+            for page in pdf:
+
+                pix = page.get_pixmap(
+                    matrix=fitz.Matrix(2,2)
+                )
+
+
+                st.image(
+                    pix.tobytes("png"),
+                    use_container_width=True
+                )
+
+
+            pdf.close()
+
+
+
+        elif ext in ("png","jpg","jpeg"):
+
+            st.image(
+                data,
+                use_container_width=True
+            )
