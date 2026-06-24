@@ -281,8 +281,10 @@ def documents_page():
                     if st.button("👁 View", key=f"view_{doc['id']}"):
                         with open(file_path, "rb") as f:
                             st.session_state["view_document"] = f.read()
+
                             st.session_state["view_filename"] = doc["file_name"]
-                            st.rerun()
+                            st.session_state["view_doc_id"] = doc["id"]
+            st.rerun()
 
             with delete_col:
                 if st.button("🗑 Delete", key=f"delete_{doc['id']}"):
@@ -293,38 +295,60 @@ def documents_page():
                     st.rerun()
 
     # ── document viewer ───────────────────────────────────────────────────────
-    if "view_document" in st.session_state:
-        st.divider()
-        fname = st.session_state["view_filename"]
-        fdata = st.session_state["view_document"]
-        st.subheader(f"👁 Viewing: {fname}")
+    # ── inline document viewer ─────────────────────────────
 
-        col_close, _ = st.columns([1, 5])
-        with col_close:
-            if st.button("✖ Close viewer", use_container_width=True):
-                del st.session_state["view_document"]
-                del st.session_state["view_filename"]
-                st.rerun()
+if st.session_state.get("view_doc_id") == doc["id"]:
 
-        ext = fname.lower().split(".")[-1]
+    st.divider()
 
-        if ext == "pdf":
-            try:
-                import fitz
-                pdf_doc = fitz.open(stream=fdata, filetype="pdf")
-                st.caption(f"{pdf_doc.page_count} page(s)")
-                for page_num in range(pdf_doc.page_count):
-                    page = pdf_doc[page_num]
-                    mat  = fitz.Matrix(2.0, 2.0)
-                    pix  = page.get_pixmap(matrix=mat)
-                    img_bytes = pix.tobytes("png")
-                    st.image(img_bytes, caption=f"Page {page_num + 1}", use_container_width=True)
-                pdf_doc.close()
-            except Exception as e:
-                st.error(f"Could not render PDF: {e}")
+    fname = st.session_state["view_filename"]
+    fdata = st.session_state["view_document"]
 
-        elif ext in ("png", "jpg", "jpeg"):
-            st.image(fdata, use_container_width=True)
+    st.subheader(f"👁 Viewing: {fname}")
 
-        else:
-            st.info("Preview not available for this file type. Use the Download button.")
+    if st.button(
+        "✖ Close Viewer",
+        key=f"close_{doc['id']}"
+    ):
+        del st.session_state["view_document"]
+        del st.session_state["view_filename"]
+        del st.session_state["view_doc_id"]
+        st.rerun()
+
+    ext = fname.lower().split(".")[-1]
+
+    if ext == "pdf":
+        try:
+            import fitz
+
+            pdf_doc = fitz.open(
+                stream=fdata,
+                filetype="pdf"
+            )
+
+            for page_num in range(pdf_doc.page_count):
+                page = pdf_doc[page_num]
+                pix = page.get_pixmap(
+                    matrix=fitz.Matrix(2, 2)
+                )
+
+                st.image(
+                    pix.tobytes("png"),
+                    use_container_width=True
+                )
+
+            pdf_doc.close()
+
+        except Exception as e:
+            st.error(f"Could not render PDF: {e}")
+
+    elif ext in ("png", "jpg", "jpeg"):
+        st.image(
+            fdata,
+            use_container_width=True
+        )
+
+    else:
+        st.info(
+            "Preview not available for this file type."
+        )
