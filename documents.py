@@ -279,12 +279,14 @@ def documents_page():
             with view_col:
                 if file_path.exists():
                     if st.button("👁 View", key=f"view_{doc['id']}"):
+
                         with open(file_path, "rb") as f:
                             st.session_state["view_document"] = f.read()
 
                             st.session_state["view_filename"] = doc["file_name"]
                             st.session_state["view_doc_id"] = doc["id"]
-            st.rerun()
+
+                            st.rerun()
 
             with delete_col:
                 if st.button("🗑 Delete", key=f"delete_{doc['id']}"):
@@ -294,8 +296,7 @@ def documents_page():
                     st.success("Document deleted")
                     st.rerun()
 
-    # ── document viewer ───────────────────────────────────────────────────────
-    # ── inline document viewer ─────────────────────────────
+# ── inline document viewer ─────────────────────────────
 
 if st.session_state.get("view_doc_id") == doc["id"]:
 
@@ -318,37 +319,32 @@ if st.session_state.get("view_doc_id") == doc["id"]:
     ext = fname.lower().split(".")[-1]
 
     if ext == "pdf":
-        try:
-            import fitz
 
-            pdf_doc = fitz.open(
-                stream=fdata,
-                filetype="pdf"
+        import fitz
+
+        pdf_doc = fitz.open(
+            stream=fdata,
+            filetype="pdf"
+        )
+
+        for page_num in range(pdf_doc.page_count):
+
+            page = pdf_doc[page_num]
+
+            pix = page.get_pixmap(
+                matrix=fitz.Matrix(2,2)
             )
 
-            for page_num in range(pdf_doc.page_count):
-                page = pdf_doc[page_num]
-                pix = page.get_pixmap(
-                    matrix=fitz.Matrix(2, 2)
-                )
+            st.image(
+                pix.tobytes("png"),
+                use_container_width=True
+            )
 
-                st.image(
-                    pix.tobytes("png"),
-                    use_container_width=True
-                )
-
-            pdf_doc.close()
-
-        except Exception as e:
-            st.error(f"Could not render PDF: {e}")
+        pdf_doc.close()
 
     elif ext in ("png", "jpg", "jpeg"):
+
         st.image(
             fdata,
             use_container_width=True
-        )
-
-    else:
-        st.info(
-            "Preview not available for this file type."
         )
