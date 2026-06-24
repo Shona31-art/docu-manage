@@ -269,13 +269,18 @@ def documents_page():
 
             with view_col:
                 if file_path.exists():
-                    if st.button("👁 View", key=f"view_{doc['id']}"):
-                        with open(file_path,"rb") as f:
-                            st.session_state["view_document"]=f.read()
 
-                            st.session_state["view_filename"]=doc["file_name"]
-                            st.session_state["view_doc_id"]=doc["id"]
-                            st.rerun()
+                    if st.button(
+                    "👁 View",
+                    key=f"view_{doc['id']}"
+                    ):
+
+                        with open(file_path,"rb") as f:
+                            st.session_state["view_document"] = f.read()
+
+                            st.session_state["view_filename"] = doc["file_name"]
+
+            st.rerun()
 
             with delete_col:
 
@@ -292,42 +297,64 @@ def documents_page():
 
                     st.rerun()
 
-    # VIEWER
+# ── document viewer ───────────────────────────────────────
 
-    if st.session_state.get("view_doc_id")==doc["id"]:
+if "view_document" in st.session_state:
 
-        st.divider()
+    st.divider()
 
-        st.subheader(f"👁 Viewing: {doc['file_name']}")
+    st.subheader(
+        f"👁 Viewing: {st.session_state['view_filename']}"
+    )
 
-    if st.button("✖ Close Viewer",key=f"close_{doc['id']}"):
+    close_col, space = st.columns([1,5])
 
-        st.session_state.pop("view_document", None)
-        st.session_state.pop("view_filename", None)
-        st.session_state.pop("view_doc_id", None)
+    with close_col:
 
-    st.rerun()
+        if st.button(
+            "✖ Close Viewer",
+            key="close_viewer"
+        ):
 
-    data=st.session_state["view_document"]
+            st.session_state.pop("view_document", None)
+            st.session_state.pop("view_filename", None)
 
-    ext=doc["file_name"].lower().split(".")[-1]
+            st.rerun()
 
-    if ext=="pdf":
+
+    file_data = st.session_state["view_document"]
+
+    filename = st.session_state["view_filename"]
+
+    ext = filename.lower().split(".")[-1]
+
+
+    if ext == "pdf":
+
         import fitz
 
-        pdf=fitz.open(stream=data,filetype="pdf")
+        pdf_doc = fitz.open(
+            stream=file_data,
+            filetype="pdf"
+        )
 
-        for page in pdf:
-            pix=page.get_pixmap(matrix=fitz.Matrix(2,2))
+        for page in pdf_doc:
+
+            pix = page.get_pixmap(
+                matrix=fitz.Matrix(2,2)
+            )
+
             st.image(
                 pix.tobytes("png"),
                 use_container_width=True
             )
 
-        pdf.close()
+        pdf_doc.close()
+
 
     elif ext in ("png","jpg","jpeg"):
+
         st.image(
-            data,
+            file_data,
             use_container_width=True
         )
