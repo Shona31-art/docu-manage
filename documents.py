@@ -295,25 +295,36 @@ def documents_page():
     # ── document viewer ───────────────────────────────────────────────────────
     if "view_document" in st.session_state:
         st.divider()
-        st.subheader(st.session_state["view_filename"])
-        if st.button("❌ Close Viewer"):
-            del st.session_state["view_document"]
-            del st.session_state["view_filename"]
-            st.rerun()
-        
-        import base64
+        fname = st.session_state["view_filename"]
+        fdata = st.session_state["view_document"]
+        st.subheader(f"👁 Viewing: {fname}")
 
-        pdf_bytes = st.session_state["view_document"]
+        col_close, _ = st.columns([1, 5])
+        with col_close:
+            if st.button("✖ Close viewer", use_container_width=True):
+                del st.session_state["view_document"]
+                del st.session_state["view_filename"]
+                st.rerun()
 
-        base64_pdf = base64.b64encode(pdf_bytes).decode("utf-8")
+        ext = fname.lower().split(".")[-1]
 
-        pdf_display = f"""
-        <iframe
-        src="data:application/pdf;base64,{base64_pdf}"
-        width="100%"
-        height="800"
-        type="application/pdf">
-        </iframe>
-        """
+        if ext == "pdf":
+            try:
+                import fitz
+                pdf_doc = fitz.open(stream=fdata, filetype="pdf")
+                st.caption(f"{pdf_doc.page_count} page(s)")
+                for page_num in range(pdf_doc.page_count):
+                    page = pdf_doc[page_num]
+                    mat  = fitz.Matrix(2.0, 2.0)
+                    pix  = page.get_pixmap(matrix=mat)
+                    img_bytes = pix.tobytes("png")
+                    st.image(img_bytes, caption=f"Page {page_num + 1}", use_container_width=True)
+                pdf_doc.close()
+            except Exception as e:
+                st.error(f"Could not render PDF: {e}")
 
-        st.markdown(pdf_display, unsafe_allow_html=True)
+        elif ext in ("png", "jpg", "jpeg"):
+            st.image(fdata, use_container_width=True)
+
+        else:
+            st.info("Preview not available for this file type. Use the Download button.")
