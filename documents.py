@@ -281,8 +281,8 @@ def documents_page():
                     if st.button("👁 View", key=f"view_{doc['id']}"):
                         with open(file_path, "rb") as f:
                             st.session_state["view_document"] = f.read()
-                        st.session_state["view_filename"] = doc["file_name"]
-                        st.rerun()
+                            st.session_state["view_filename"] = doc["file_name"]
+                            st.rerun()
 
             with delete_col:
                 if st.button("🗑 Delete", key=f"delete_{doc['id']}"):
