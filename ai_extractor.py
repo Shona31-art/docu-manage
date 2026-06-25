@@ -93,6 +93,8 @@ def extract_invoice_data(file_path):
     # This handles "Credit Note No: CN-1234", "Invoice #: INV-001" etc.
     # Document number
 
+    fallback_num = None
+
     labelled_num = re.search(
     r"(?:credit\s*note\s*(?:no\.?|number|#)?|"
     r"invoice\s*(?:no\.?|number|#)?|"
