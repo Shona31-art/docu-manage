@@ -32,7 +32,12 @@ def _find_labeled_amount(text: str, label_pattern: str):
     """
     # Strip out percentage values first so they don't get matched as amounts
     clean_text = re.sub(r'\d+\.?\d*\s*%', '', text)
-    pattern = label_pattern + r"[^\d]{0,80}(?:R\s?)?(\d{1,3}(?:,\d{3})*\.\d{2})"
+    pattern = (
+    label_pattern
+    + r"[^\n\r\d]{0,40}"
+    + r"(?:R\s?)?"
+    + r"(\d{1,3}(?:,\d{3})*\.\d{2})"
+    )
     match = re.search(pattern, clean_text, re.I)
     if match:
         return _parse_amount(match.group(1))
