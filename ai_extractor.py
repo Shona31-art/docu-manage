@@ -265,7 +265,7 @@ def extract_invoice_data(file_path):
         vat = calculated_vat
 
     
-        # ==============================
+    # ==============================
     # Vendor name extraction
     # ==============================
 
@@ -275,92 +275,77 @@ def extract_invoice_data(file_path):
         if line.strip()
     ]
 
-
     SKIP_WORDS = [
-    "invoice",
-    "tax invoice",
-    "vat invoice",
-    "credit",
-    "credit note",
-    "receipt",
-    "statement",
-    "purchase order",
-    "po.",
-    "po",
-    "date",
-    "number",
-    "no",
-    "vat",
-    "total",
-    "amount",
-    "address",
-    "postal code",
-    "customer",
-    "ship to",
-    "balance",
+        "invoice",
+        "tax invoice",
+        "vat invoice",
+        "credit note",
+        "credit",
+        "receipt",
+        "statement",
+        "purchase order",
+        "po",
+        "po.",
+        "date",
+        "number",
+        "no",
+        "vat",
+        "total",
+        "amount",
+        "balance",
+        "vendor",
+        "item",
+        "description",
+        "quantity",
+        "qty",
+        "unit",
+        "unit price",
+        "price",
+        "rate",
+        "subtotal",
+        "total price"
+    ]
 
-    # table headings
-    "vendor",
-    "item",
-    "description",
-    "quantity",
-    "qty",
-    "unit",
-    "unit price",
-    "price",
-    "rate",
-    "subtotal",
-    "total price"
-]
-
-    def looks_like_address(line):
-
-        address_words = [
-            "street",
-            "st",
-            "road",
-            "rd",
-            "drive",
-            "dr",
-            "avenue",
-            "ave",
-            "lane",
-            "ln",
-            "ny",
-            "ca",
-            "ma",
-            "nyc",
-            "usa",
-            "place",
-            "Palm",
-            "po."
-        ]
-
+    def looks_like_bad_vendor(line):
 
         lower = line.lower()
 
+        # headings/table words
+        for word in SKIP_WORDS:
+            if word in lower:
+                return True
 
-        if any(word == lower.strip() for word in SKIP_WORDS):
+        # address patterns
+        if re.search(
+            r"\d+.*(street|st|road|rd|drive|dr|avenue|ave|lane|ln)",
+            lower
+        ):
             return True
 
-
-        # contains many numbers = probably address
-        numbers = len(re.findall(r"\d+", line))
-
-        if numbers >= 2:
+        # city/state/postcode style
+        if re.search(
+            r"[A-Za-z]+,\s*[A-Z]{2}\s*\d+",
+            line
+        ):
             return True
 
+        # too many numbers = not company name
+        if len(re.findall(r"\d+", line)) >= 2:
+            return True
+
+        # PO numbers
+        if re.search(r"\bPO\.?\s*\d+", line, re.I):
+            return True
 
         return False
 
-
-    # Try labelled vendor first
+    # labelled vendor
 
     vendor_match = re.search(
         r"(?:vendor|supplier|company|seller|from|issued\s+by)"
         r"\s*[:\-]\s*(.+)",
         text,
-        re.IGNORECASE
+        re.I
     )
 
 
@@ -368,7 +353,7 @@ def extract_invoice_data(file_path):
 
         candidate = vendor_match.group(1).strip()
 
-        if not looks_like_address(candidate):
+        if not looks_like_bad_vendor(candidate):
 
             data["vendor_name"] = candidate
 
@@ -378,23 +363,19 @@ def extract_invoice_data(file_path):
 
     if data["vendor_name"] == "":
 
-        for line in lines[:20]:
-
-            lower = line.lower()
+        for line in lines[:25]:
 
 
-            if any(word in lower for word in SKIP_WORDS):
+            if looks_like_bad_vendor(line):
                 continue
 
 
-            if looks_like_address(line):
+            # must have at least 2 letters
+            if len(re.findall(r"[A-Za-z]", line)) < 2:
                 continue
 
 
-            # must contain letters
-            if re.search("[A-Za-z]", line):
-
-                data["vendor_name"] = line
-                break
+            data["vendor_name"] = line
+            break
 
     return data
