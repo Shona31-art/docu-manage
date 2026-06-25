@@ -230,14 +230,88 @@ def extract_invoice_data(file_path):
         vat = calculated_vat
 
     # Vendor name — first meaningful line, skipping document type headers
-    SKIP_WORDS = {
-        "credit note", "tax invoice", "invoice", "receipt",
-        "statement", "purchase order", "debit note", "remittance"
-    }
-    lines = [l.strip() for l in text.split("\n") if l.strip()]
-    for line in lines:
-        if line.lower() not in SKIP_WORDS and len(line) > 2:
-            data["vendor_name"] = line
-            break
+        # Vendor name extraction - improved
+    # Avoid picking INVOICE / TAX INVOICE as vendor
+
+    SKIP_WORDS = [
+        "credit note",
+        "tax invoice",
+        "vat invoice",
+        "invoice",
+        "receipt",
+        "statement",
+        "purchase order",
+        "debit note",
+        "remittance",
+        "document"
+    ]
+
+    lines = [
+        l.strip()
+        for l in text.split("\n")
+        if l.strip()
+    ]
+
+
+    vendor_found = False
+
+
+    # First try to find labelled vendor fields
+    vendor_patterns = [
+        r"(?:vendor|supplier|company|seller|from|issued by)\s*[:\-]?\s*(.+)",
+    ]
+
+
+    for pattern in vendor_patterns:
+
+        match = re.search(
+            pattern,
+            text,
+            re.IGNORECASE
+        )
+
+        if match:
+
+            possible_vendor = match.group(1).strip()
+
+            if possible_vendor.lower() not in SKIP_WORDS:
+                data["vendor_name"] = possible_vendor
+                vendor_found = True
+                break
+
+
+
+    # If no label exists, search top lines
+    if not vendor_found:
+
+        for line in lines[:10]:
+
+            lower_line = line.lower()
+
+
+            # skip headers
+            if any(skip in lower_line for skip in SKIP_WORDS):
+                continue
+
+
+            # skip invoice numbers
+            if re.search(r"(inv|invoice|no\.|number|#)", lower_line):
+                continue
+
+
+            # skip dates
+            if re.search(r"\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}", line):
+                continue
+
+
+            # skip pure numbers
+            if re.fullmatch(r"[\d\s.,]+", line):
+                continue
+
+
+            if len(line) > 2:
+
+                data["vendor_name"] = line
+                break
 
     return data
