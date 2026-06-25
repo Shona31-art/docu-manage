@@ -277,25 +277,41 @@ def extract_invoice_data(file_path):
 
 
     SKIP_WORDS = [
-        "invoice",
-        "tax invoice",
-        "vat invoice",
-        "credit",
-        "credit note",
-        "receipt",
-        "statement",
-        "purchase order",
-        "po.",
-        "po",
-        "date",
-        "number",
-        "no",
-        "vat",
-        "total",
-        "amount",
-        "balance"
-    ]
+    "invoice",
+    "tax invoice",
+    "vat invoice",
+    "credit",
+    "credit note",
+    "receipt",
+    "statement",
+    "purchase order",
+    "po.",
+    "po",
+    "date",
+    "number",
+    "no",
+    "vat",
+    "total",
+    "amount",
+    "address",
+    "postal code",
+    "customer",
+    "ship to",
+    "balance",
 
+    # table headings
+    "vendor",
+    "item",
+    "description",
+    "quantity",
+    "qty",
+    "unit",
+    "unit price",
+    "price",
+    "rate",
+    "subtotal",
+    "total price"
+]
 
     def looks_like_address(line):
 
@@ -324,7 +340,7 @@ def extract_invoice_data(file_path):
         lower = line.lower()
 
 
-        if any(word in lower for word in address_words):
+        if any(word == lower.strip() for word in SKIP_WORDS):
             return True
 
 
@@ -336,7 +352,6 @@ def extract_invoice_data(file_path):
 
 
         return False
-
 
 
     # Try labelled vendor first
