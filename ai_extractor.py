@@ -175,6 +175,17 @@ def extract_invoice_data(file_path):
     or _find_labeled_amount(text, r"final\s+amount")
     )
 
+    vat = (
+    _find_labeled_amount(text, r"vat(?:\s*\(\d+%\))?(?:\s*amount)?")
+    or _find_labeled_amount(text, r"value\s+added\s+tax")
+    or _find_labeled_amount(text, r"tax(?:\s*amount)?")
+    or _find_labeled_amount(text, r"vat\s+amount")
+    or _find_labeled_amount(text, r"vat\s+total")
+    or _find_labeled_amount(text, r"gst(?:\s*amount)?")
+    or _find_labeled_amount(text, r"sales\s+tax")
+    or _find_labeled_amount(text, r"(value\s+added\s+tax|vat)")
+    )
+
     # If labeled search found nothing, fall back to last 3 currency amounts
     if subtotal is None and vat is None and total is None:
         all_amounts = re.findall(
@@ -206,16 +217,6 @@ def extract_invoice_data(file_path):
         # If no explicit "total" label found, derive it
         data["amount"] = round(subtotal + vat, 2)
 
-    vat = (
-    _find_labeled_amount(text, r"vat(?:\s*\(\d+%\))?(?:\s*amount)?")
-    or _find_labeled_amount(text, r"value\s+added\s+tax")
-    or _find_labeled_amount(text, r"tax(?:\s*amount)?")
-    or _find_labeled_amount(text, r"vat\s+amount")
-    or _find_labeled_amount(text, r"vat\s+total")
-    or _find_labeled_amount(text, r"gst(?:\s*amount)?")
-    or _find_labeled_amount(text, r"sales\s+tax")
-    or _find_labeled_amount(text, r"(value\s+added\s+tax|vat)")
-    )
 
     if subtotal and total:
         calculated_vat = total - subtotal
