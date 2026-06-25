@@ -97,22 +97,22 @@ def extract_invoice_data(file_path):
     r"(?:credit\s*note\s*(?:no\.?|number|#)?|"
     r"invoice\s*(?:no\.?|number|#)?|"
     r"document\s*(?:no\.?|number|#)?)"
-    r"\s*[:#]?\s*([A-Z0-9][A-Z0-9\-_/]+)",
+    r"\s*[:#]?\s*([A-Z0-9][A-Z0-9\-_\/]+)",
     text,
     re.I
-)
+    )
 
     if labelled_num:
         data["invoice_number"] = labelled_num.group(1).upper().strip()
     else:
-        doc_num = re.search(
+        fallback_num = re.search(
         r"\b((?:INV|CN|CR|CRN|CDN)[A-Z0-9\-_]*)\b",
         text,
         re.I
     )
 
-    if doc_num:
-        data["invoice_number"] = doc_num.group(1).upper().strip()
+    if fallback_num:
+        data["invoice_number"] = fallback_num.group(1).upper().strip()
 
     # Date
     data["invoice_date"] = _find_date(text)
