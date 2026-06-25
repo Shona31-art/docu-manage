@@ -155,23 +155,6 @@ def extract_invoice_data(file_path):
     or _find_labeled_amount(text, r"line\s+total")
     or _find_labeled_amount(text, r"net\s+total")
     )
-
-    vat = (
-    _find_labeled_amount(text, r"vat(?:\s*\(\d+%\))?(?:\s*amount)?")
-    or _find_labeled_amount(text, r"value\s+added\s+tax")
-    or _find_labeled_amount(text, r"tax(?:\s*amount)?")
-    or _find_labeled_amount(text, r"vat\s+amount")
-    or _find_labeled_amount(text, r"vat\s+total")
-    or _find_labeled_amount(text, r"gst(?:\s*amount)?")
-    or _find_labeled_amount(text, r"sales\s+tax")
-    or _find_labeled_amount(text, r"(value\s+added\s+tax|vat)")
-    )
-
-    if subtotal and total:
-        calculated_vat = total - subtotal
-
-    if vat is None or vat == subtotal:
-        vat = calculated_vat
     
     total = (
     _find_labeled_amount(text, r"(?<!\w)(?:grand\s*)?total(?!\s*(?:vat|tax))")
@@ -222,6 +205,23 @@ def extract_invoice_data(file_path):
     elif subtotal is not None and vat is not None:
         # If no explicit "total" label found, derive it
         data["amount"] = round(subtotal + vat, 2)
+
+    vat = (
+    _find_labeled_amount(text, r"vat(?:\s*\(\d+%\))?(?:\s*amount)?")
+    or _find_labeled_amount(text, r"value\s+added\s+tax")
+    or _find_labeled_amount(text, r"tax(?:\s*amount)?")
+    or _find_labeled_amount(text, r"vat\s+amount")
+    or _find_labeled_amount(text, r"vat\s+total")
+    or _find_labeled_amount(text, r"gst(?:\s*amount)?")
+    or _find_labeled_amount(text, r"sales\s+tax")
+    or _find_labeled_amount(text, r"(value\s+added\s+tax|vat)")
+    )
+
+    if subtotal and total:
+        calculated_vat = total - subtotal
+
+    if vat is None or vat == subtotal:
+        vat = calculated_vat
 
     # Vendor name — first meaningful line, skipping document type headers
     SKIP_WORDS = {
