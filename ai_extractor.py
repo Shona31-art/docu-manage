@@ -120,37 +120,51 @@ def extract_invoice_data(file_path):
 
         # Document number extraction
 
+    data["invoice_number"] = ""
+
+    # Must have a number label
     labelled_num = re.search(
-        r"(?:credit\s*note|invoice|document)"
-        r"\s*(?:no\.?|number|#)"
-        r"\s*[:#]?\s*([A-Z0-9][A-Z0-9\-_\/]+)",
+        r"(?:invoice\s*(?:number|no\.?|#)|"
+        r"credit\s*note\s*(?:number|no\.?|#)|"
+        r"document\s*(?:number|no\.?|#))"
+        r"\s*[:\-]?\s*([A-Z0-9][A-Z0-9\-_\/]+)",
         text,
-        re.I
+        re.IGNORECASE
     )
 
     if labelled_num:
 
         value = labelled_num.group(1).upper().strip()
 
-        if value not in [
+        blocked = [
             "CREDIT",
-            "CREDITNOTE",
             "NOTE",
-            "INVOICE"
-        ]:
+            "INVOICE",
+            "TAX"
+        ]
+
+        if value not in blocked:
             data["invoice_number"] = value
 
-    else:
+
+
+    # Only accept proper invoice formats as fallback
+    if data["invoice_number"] == "":
 
         fallback_num = re.search(
-            r"\b((?:INV-|CN-|CR-|CRN-|CDN-)[A-Z0-9\-_]+)\b",
+            r"\b(INV-\d+|CN-\d+|CR-\d+|CRN-\d+|CDN-\d+)\b",
             text,
-            re.I
+            re.IGNORECASE
         )
+
 
         if fallback_num:
 
-            data["invoice_number"] = fallback_num.group(1).upper().strip()
+            data["invoice_number"] = (
+                fallback_num.group(1)
+                .upper()
+                .strip()
+            )
 
     # Date
     data["invoice_date"] = _find_date(text)
@@ -242,11 +256,13 @@ def extract_invoice_data(file_path):
 
         vat = calculated_vat
 
-    # Vendor name — first meaningful line, skipping document type headers
-        # Vendor name extraction - improved
-    # Avoid picking INVOICE / TAX INVOICE as vendor
+    
+    # ==============================
+    # Vendor name extraction
+    # ==============================
 
     SKIP_WORDS = [
+        "credit",
         "credit note",
         "tax invoice",
         "vat invoice",
@@ -256,73 +272,92 @@ def extract_invoice_data(file_path):
         "purchase order",
         "debit note",
         "remittance",
-        "document"
+        "document",
+        "date",
+        "number",
+        "no",
+        "vat",
+        "total",
+        "amount"
     ]
 
+
     lines = [
-        l.strip()
-        for l in text.split("\n")
-        if l.strip()
+        line.strip()
+        for line in text.splitlines()
+        if line.strip()
     ]
 
 
     vendor_found = False
 
 
-    # First try to find labelled vendor fields
-    vendor_patterns = [
-        r"(?:vendor|supplier|company|seller|from|issued by)\s*[:\-]?\s*(.+)",
-    ]
+    # Check for labelled vendor fields first
+    vendor_match = re.search(
+        r"(?:vendor|supplier|company|seller|from|issued\s+by)"
+        r"\s*[:\-]\s*(.+)",
+        text,
+        re.IGNORECASE
+    )
 
 
-    for pattern in vendor_patterns:
+    if vendor_match:
 
-        match = re.search(
-            pattern,
-            text,
-            re.IGNORECASE
-        )
+        candidate = vendor_match.group(1).strip()
 
-        if match:
-
-            possible_vendor = match.group(1).strip()
-
-            if possible_vendor.lower() not in SKIP_WORDS:
-                data["vendor_name"] = possible_vendor
-                vendor_found = True
-                break
+        if candidate.lower() not in SKIP_WORDS:
+            data["vendor_name"] = candidate
+            vendor_found = True
 
 
 
-    # If no label exists, search top lines
+    # Fallback: find company name near top
     if not vendor_found:
 
-        for line in lines[:10]:
+        for line in lines[:15]:
 
-            lower_line = line.lower()
+            lower = line.lower()
 
 
-            # skip headers
-            if any(skip in lower_line for skip in SKIP_WORDS):
+            # Skip headings
+            if any(word in lower for word in SKIP_WORDS):
                 continue
 
 
-            # skip invoice numbers
-            if re.search(r"(inv|invoice|no\.|number|#)", lower_line):
+            # Skip invoice numbers
+            if re.search(
+                r"(inv|cn|cr|invoice|credit|note)\s*[-#:0-9]",
+                lower
+            ):
                 continue
 
 
-            # skip dates
-            if re.search(r"\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}", line):
+            # Skip dates
+            if re.search(
+                r"\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}",
+                line
+            ):
                 continue
 
 
-            # skip pure numbers
-            if re.fullmatch(r"[\d\s.,]+", line):
+            # Skip address lines
+            if re.search(
+                r"\d+\s+\w+.*(street|st|road|rd|drive|dr|avenue|ave|lane|ln)",
+                lower
+            ):
                 continue
 
 
-            if len(line) > 2:
+            # Skip lines that are mostly numbers
+            if re.fullmatch(
+                r"[\d\s.,\-]+",
+                line
+            ):
+                continue
+
+
+            # Company names usually have letters and reasonable length
+            if len(line) >= 3 and not line.isdigit():
 
                 data["vendor_name"] = line
                 break
