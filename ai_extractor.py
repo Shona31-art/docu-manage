@@ -32,7 +32,7 @@ def _find_labeled_amount(text: str, label_pattern: str):
     """
     # Strip out percentage values first so they don't get matched as amounts
     clean_text = re.sub(r'\d+\.?\d*\s*%', '', text)
-    pattern = label_pattern + r"[^\d]{0,80}(?:R\s?)?(\d{1,3}(?:[,\s]\d{3})*\.\d{2})"
+    pattern = label_pattern + r"[^\d]{0,80}(?:R\s?)?(\d{1,3}(?:,\d{3})*\.\d{2})"
     match = re.search(pattern, clean_text, re.I)
     if match:
         return _parse_amount(match.group(1))
@@ -91,21 +91,28 @@ def extract_invoice_data(file_path):
 
     # Document number — look for labelled number fields first (most reliable)
     # This handles "Credit Note No: CN-1234", "Invoice #: INV-001" etc.
+    # Document number
+
     labelled_num = re.search(
-        r"(?:credit\s*note\s*(?:no\.?|number|#)?|invoice\s*(?:no\.?|number|#)?)"
-        r"\s*[:#]?\s*([A-Z]{0,4}[-]?\d{2,}[-\w]*)",
-        text, re.I
-    )
+    r"(?:credit\s*note\s*(?:no\.?|number|#)?|"
+    r"invoice\s*(?:no\.?|number|#)?|"
+    r"document\s*(?:no\.?|number|#)?)"
+    r"\s*[:#]?\s*([A-Z0-9][A-Z0-9\-_/]+)",
+    text,
+    re.I
+)
+
     if labelled_num:
         data["invoice_number"] = labelled_num.group(1).upper().strip()
     else:
-        # Fallback: look for prefixed document numbers (INV-, CN-, etc.)
         doc_num = re.search(
-            r"\b((?:INV|CN|CR|CRN|CDN)[-]\d+[\w-]*)\b",
-            text, re.I
-        )
-        if doc_num:
-            data["invoice_number"] = doc_num.group(1).upper().strip()
+        r"\b((?:INV|CN|CR|CRN|CDN)[A-Z0-9\-_]*)\b",
+        text,
+        re.I
+    )
+
+    if doc_num:
+        data["invoice_number"] = doc_num.group(1).upper().strip()
 
     # Date
     data["invoice_date"] = _find_date(text)
@@ -114,32 +121,31 @@ def extract_invoice_data(file_path):
 
     subtotal = (
     _find_labeled_amount(text, r"sub[\s-]?total")
-    or _find_labeled_amount(text, r"subtotal\s+(?:before|excl(?:usive)?)\s*(?:vat|tax)")
     or _find_labeled_amount(text, r"net\s+amount")
-    or _find_labeled_amount(text, r"net\s+total")
     or _find_labeled_amount(text, r"amount\s+before\s+tax")
-    or _find_labeled_amount(text, r"amount\s+before\s+vat")
-    or _find_labeled_amount(text, r"taxable\s+amount")
-    or _find_labeled_amount(text, r"taxable\s+value")
+    or _find_labeled_amount(text, r"total\s+excl(?:usive)?\s*vat")
+    or _find_labeled_amount(text, r"subtotal\s+excl(?:usive)?\s*vat")
     or _find_labeled_amount(text, r"goods\s+amount")
-    or _find_labeled_amount(text, r"service\s+amount")
+    or _find_labeled_amount(text, r"goods\s+total")
     or _find_labeled_amount(text, r"line\s+total")
+    or _find_labeled_amount(text, r"net\s+total")
     )
 
     vat = (
-    _find_labeled_amount(text, r"vat(?:\s*\(\d+\.?\d*%\))?")
+    _find_labeled_amount(text, r"vat(?:\s*\(\d+%\))?(?:\s*amount)?")
+    or _find_labeled_amount(text, r"value\s+added\s+tax")
+    or _find_labeled_amount(text, r"tax(?:\s*amount)?")
     or _find_labeled_amount(text, r"vat\s+amount")
     or _find_labeled_amount(text, r"vat\s+total")
-    or _find_labeled_amount(text, r"value\s+added\s+tax")
-    or _find_labeled_amount(text, r"tax")
-    or _find_labeled_amount(text, r"tax\s+amount")
+    or _find_labeled_amount(text, r"gst(?:\s*amount)?")
     or _find_labeled_amount(text, r"sales\s+tax")
-    or _find_labeled_amount(text, r"gst")
     )
 
     total = (
     _find_labeled_amount(text, r"(?<!\w)(?:grand\s*)?total(?!\s*(?:vat|tax))")
     or _find_labeled_amount(text, r"invoice\s+total")
+    or _find_labeled_amount(text, r"total\s+incl(?:usive)?\s*vat")
+    or _find_labeled_amount(text, r"total\s+including\s*vat")
     or _find_labeled_amount(text, r"total\s+amount")
     or _find_labeled_amount(text, r"total\s+due")
     or _find_labeled_amount(text, r"amount\s+due")
@@ -197,4 +203,3 @@ def extract_invoice_data(file_path):
             break
 
     return data
-
