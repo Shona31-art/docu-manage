@@ -31,16 +31,34 @@ def _find_labeled_amount(text: str, label_pattern: str):
     Handles amounts with thousand separators, e.g. R12,450.00
     """
     # Strip out percentage values first so they don't get matched as amounts
-    clean_text = re.sub(r'\d+\.?\d*\s*%', '', text)
-    pattern = (
-    label_pattern
-    + r"[^\n\r\d]{0,40}"
-    + r"(?:R\s?)?"
-    + r"(\d{1,3}(?:,\d{3})*\.\d{2})"
-    )
-    match = re.search(pattern, clean_text, re.I)
-    if match:
-        return _parse_amount(match.group(1))
+    
+    lines = text.splitlines()
+
+    for i, line in enumerate(lines):
+
+        if re.search(label_pattern, line, re.I):
+
+            # check same line first
+            amount = re.search(
+                r"R?\s?(\d{1,3}(?:,\d{3})*\.\d{2})",
+                line
+            )
+
+            if amount:
+                return _parse_amount(amount.group(1))
+
+
+            # check next 2 lines
+            for next_line in lines[i+1:i+3]:
+
+                amount = re.search(
+                    r"R?\s?(\d{1,3}(?:,\d{3})*\.\d{2})",
+                    next_line
+                )
+
+                if amount:
+                    return _parse_amount(amount.group(1))
+
     return None
 
 
@@ -146,8 +164,9 @@ def extract_invoice_data(file_path):
     or _find_labeled_amount(text, r"vat\s+total")
     or _find_labeled_amount(text, r"gst(?:\s*amount)?")
     or _find_labeled_amount(text, r"sales\s+tax")
+    or _find_labeled_amount(text, r"(value\s+added\s+tax|vat)")
     )
-
+    
     total = (
     _find_labeled_amount(text, r"(?<!\w)(?:grand\s*)?total(?!\s*(?:vat|tax))")
     or _find_labeled_amount(text, r"invoice\s+total")
