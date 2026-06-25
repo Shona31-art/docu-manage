@@ -218,10 +218,14 @@ def extract_invoice_data(file_path):
         data["amount"] = round(subtotal + vat, 2)
 
 
-    if subtotal and total:
-        calculated_vat = total - subtotal
+    # Fix VAT using subtotal and total calculation
+    if subtotal is not None and total is not None:
 
-    if vat is None or vat == subtotal:
+        calculated_vat = round(total - subtotal, 2)
+
+    # Always trust calculation if VAT equals subtotal or is suspicious
+    if vat is None or vat >= subtotal:
+
         vat = calculated_vat
 
     # Vendor name — first meaningful line, skipping document type headers
