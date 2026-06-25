@@ -184,6 +184,7 @@ def extract_invoice_data(file_path):
     or _find_labeled_amount(text, r"gst(?:\s*amount)?")
     or _find_labeled_amount(text, r"sales\s+tax")
     or _find_labeled_amount(text, r"(value\s+added\s+tax|vat)")
+    or _find_labeled_amount(text, r"value\s+added\s+tax\s*\(\s*\d+%\s*\)")
     )
 
     # If labeled search found nothing, fall back to last 3 currency amounts
