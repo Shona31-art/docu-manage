@@ -176,8 +176,8 @@ def extract_invoice_data(file_path):
     )
 
     vat = (
-    _find_labeled_amount(text, r"vat(?:\s*\(\d+%\))?(?:\s*amount)?")
-    or _find_labeled_amount(text, r"value\s+added\s+tax")
+
+    _find_labeled_amount(text, r"value\s+added\s+tax")
     or _find_labeled_amount(text, r"tax(?:\s*amount)?")
     or _find_labeled_amount(text, r"vat\s+amount")
     or _find_labeled_amount(text, r"vat\s+total")
