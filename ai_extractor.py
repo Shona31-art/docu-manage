@@ -166,6 +166,12 @@ def extract_invoice_data(file_path):
     or _find_labeled_amount(text, r"sales\s+tax")
     or _find_labeled_amount(text, r"(value\s+added\s+tax|vat)")
     )
+
+    if subtotal and total:
+        calculated_vat = total - subtotal
+
+    if vat is None or vat == subtotal:
+        vat = calculated_vat
     
     total = (
     _find_labeled_amount(text, r"(?<!\w)(?:grand\s*)?total(?!\s*(?:vat|tax))")
