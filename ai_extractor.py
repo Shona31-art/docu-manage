@@ -128,24 +128,28 @@ def extract_invoice_data(file_path):
         re.I
     )
 
-
     if labelled_num:
 
         value = labelled_num.group(1).upper().strip()
 
-        if value not in ["CREDIT", "NOTE", "INVOICE"]:
+        if value not in [
+            "CREDIT",
+            "CREDITNOTE",
+            "NOTE",
+            "INVOICE"
+        ]:
             data["invoice_number"] = value
-
 
     else:
 
         fallback_num = re.search(
-            r"\b((?:INV|CN|CR|CRN|CDN)[A-Z0-9\-_]+)\b",
+            r"\b((?:INV-|CN-|CR-|CRN-|CDN-)[A-Z0-9\-_]+)\b",
             text,
             re.I
         )
 
         if fallback_num:
+
             data["invoice_number"] = fallback_num.group(1).upper().strip()
 
     # Date
