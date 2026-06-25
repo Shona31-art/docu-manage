@@ -119,19 +119,18 @@ def extract_invoice_data(file_path):
     fallback_num = None
 
     labelled_num = re.search(
-    r"(?:credit\s*note\s*(?:no\.?|number|#)?|"
-    r"invoice\s*(?:no\.?|number|#)?|"
-    r"document\s*(?:no\.?|number|#)?)"
-    r"\s*[:#]?\s*([A-Z0-9][A-Z0-9\-_\/]+)",
-    text,
-    re.I
+        r"(?:credit\s*note|invoice|document)"
+        r"\s*(?:no\.?|number|#)"
+        r"\s*[:#]?\s*([A-Z0-9][A-Z0-9\-_\/]+)",
+        text,
+        re.I
     )
 
     if labelled_num:
         data["invoice_number"] = labelled_num.group(1).upper().strip()
     else:
-        fallback_num = re.search(
-        r"\b((?:INV|CN|CR|CRN|CDN)[A-Z0-9\-_]*)\b",
+            fallback_num = re.search(
+        r"\b((?:INV|CN|CR|CRN|CDN)[A-Z0-9\-_]+)\b",
         text,
         re.I
     )
